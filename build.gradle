@@ -15,11 +15,6 @@ java {
 
 ext.jmonkeyengineVersion = '3.8.1-stable'
 
-mainClassName = 'thedoomofdoom.TheDoomOfDoom'
-if (!hasProperty('mainClass')) {
-    ext.mainClass = mainClassName
-}
-jar.manifest.attributes('Main-Class': mainClassName)
 
 repositories {
     maven { url "https://jitpack.io" }
@@ -28,8 +23,9 @@ repositories {
 }
 
 application {
+    mainClass = 'thedoomofdoom.TheDoomOfDoom'
     if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-        applicationDefaultJvmArgs = ['-XstartOnFirstThread'] // this is when using a Mac as a development machine which requires the AppKit main UI thread to be used for GUI applications
+        applicationDefaultJvmArgs = ['-XstartOnFirstThread']
     }
 }
 
@@ -46,7 +42,7 @@ dependencies {
     runtimeOnly 'org.jmonkeyengine:jme3-lwjgl3:' + jmonkeyengineVersion
 
     implementation 'com.github.Jeddic:particlemonkey:1.0.2'
-    implementation 'io.tlf.monkeynetty:monkey-netty:0.1.1'
+
 }
 
 distZip {
@@ -114,9 +110,12 @@ task downloadAndUnzipLinuxJre(dependsOn: downloadLinuxJre, type: Copy) {
 task buildLinuxDistribution(dependsOn: [distZip, downloadAndUnzipLinuxJre], type: Copy)
 {
     group 'distribution'
-    from files("${projectDir}/scripts/desktopDeployment/TheDoomOfDoom.sh"){
-        fileMode 0755
+    from("${projectDir}/scripts/desktopDeployment/TheDoomOfDoom.sh") {
+        eachFile { file ->
+            file.mode = 0755
+        }
     }
+    includeEmptyDirs = false
     from zipTree(distZip.archiveFile)
     from "${buildDir}/jres/linuxJre"
     into new File(buildDir, 'distributions/TheDoomOfDoom-linux')
@@ -124,16 +123,21 @@ task buildLinuxDistribution(dependsOn: [distZip, downloadAndUnzipLinuxJre], type
     exclude 'bin/**' //we are adding our own run scripts, exclude the ones coming from distZip
 }
 
-task zipLinuxDistribution( dependsOn:buildLinuxDistribution, type: Zip) {
+task zipLinuxDistribution(dependsOn: buildLinuxDistribution, type: Zip) {
     group 'distribution'
     archiveFileName = "TheDoomOfDoom-linux.tar.gz"
     destinationDirectory = file("$buildDir/distributions")
-    from ("$buildDir/distributions/TheDoomOfDoom-linux"){
-      include('**.sh')
-      include('**/java')
-      fileMode 0755
+
+    from("$buildDir/distributions/TheDoomOfDoom-linux") {
+        include('**.sh')
+        include('**/java')
+        eachFile { file ->
+            file.mode = 0755
+        }
+        includeEmptyDirs = false
     }
-    from ("$buildDir/distributions/TheDoomOfDoom-linux"){
+
+    from("$buildDir/distributions/TheDoomOfDoom-linux") {
         exclude('**.sh')
         exclude('**/java')
     }
@@ -155,33 +159,7 @@ task downloadAndUnzipMacJre(dependsOn: downloadMacJre, type: Copy) {
     }
 }
 
-task buildMacDistribution(dependsOn: [distZip, downloadAndUnzipMacJre], type: Copy)
-{
-    group 'distribution'
-    from files("${projectDir}/scripts/desktopDeployment/TheDoomOfDoom.command"){
-        fileMode 0755
-    }
-    from zipTree(distZip.archiveFile) 
-    from "${buildDir}/jres/macJre"
-    into new File(buildDir, 'distributions/TheDoomOfDoom-mac')
-    includeEmptyDirs false
-    exclude 'bin/**' //we are adding our own run scripts, exclude the ones coming from distZip
-}
 
-task zipMacDistribution( dependsOn:buildMacDistribution, type: Zip) {
-    group 'distribution'
-    archiveFileName = "TheDoomOfDoom-mac.tar.gz"
-    destinationDirectory = file("$buildDir/distributions")
-    from ("$buildDir/distributions/TheDoomOfDoom-mac"){
-      include('**.command')
-      include('**/java')
-      fileMode 0755
-    }
-    from ("$buildDir/distributions/TheDoomOfDoom-mac"){
-        exclude('**.command')
-        exclude('**/java')
-    }
-}
 
 task buildAllDistributions{
     group 'distribution'
